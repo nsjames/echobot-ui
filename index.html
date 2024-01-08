@@ -20,6 +20,7 @@
 <input type="number" id="numberOfMints" placeholder="Number of Mints" value="100" style="width: 100%; height: 50px; font-size: 20px; padding: 10px; margin-bottom: 10px;">
 
 <button onclick="runMultipleMints()" style="width: 100%; height: 50px; font-size: 20px; padding: 10px; margin-bottom: 10px;">Run</button>
+<button onclick="runForever()" style="width: 100%; height: 50px; font-size: 20px; padding: 10px; margin-bottom: 10px;">Run Forever</button>
 
 <br />
 <section id="status"></section>
@@ -99,12 +100,16 @@
         if(receipt) consoleAsStatus(`Transaction was mined in block ${receipt.blockNumber}`);
     }
 
+    const setupWallet = () => {
+        if(!wallet){
+            wallet = new Wallet(document.getElementById("privateKey").value, provider);
+            contract = new Contract(contractAddress, contractABI, wallet);
+        }
+    }
+
     async function runMultipleMints() {
         try {
-            if(!wallet){
-                wallet = new Wallet(document.getElementById("privateKey").value, provider);
-                contract = new Contract(contractAddress, contractABI, wallet);
-            }
+            setupWallet();
 
 
             const numberOfMints = parseInt(document.getElementById('numberOfMints').value);
@@ -123,6 +128,18 @@
             const endTime = new Date();
             const duration = (endTime - startTime) / 1000; // Convert milliseconds to seconds
             consoleAsStatus(`Finished minting Smart Inscriptions in ${duration} seconds.`);
+        } catch (e) {
+            consoleAsStatus(e);
+        }
+    }
+
+    async function runForever() {
+        try {
+            setupWallet();
+
+            while(true) {
+                await mint().catch(consoleAsStatus);
+            }
         } catch (e) {
             consoleAsStatus(e);
         }
