@@ -92,8 +92,11 @@
 
         consoleAsStatus(`Transaction Hash: <a href="https://explorer.evm.eosnetwork.com/tx/${transaction.hash}" target="_blank">${transaction.hash}</a>`);
 
-        const receipt = await transaction.wait();
-        consoleAsStatus(`Transaction was mined in block ${receipt.blockNumber}`);
+        const receipt = await Promise.race([
+            transaction.wait(1),
+            new Promise(r => setTimeout(r, 5000))
+        ]);
+        if(receipt) consoleAsStatus(`Transaction was mined in block ${receipt.blockNumber}`);
     }
 
     async function runMultipleMints() {
