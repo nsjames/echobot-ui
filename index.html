@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.9.2/ethers.umd.min.js"
+            integrity="sha512-sLFpRsIQP1UEi2fOI8XClBiucfQ3OxACkCQc4SQyDmpJwCzjyFwlTYQYsCPJIakPxGvAvG8rjzmunxsAhw3RUw=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+
+
+<h1>INSCRIBE BOT</h1>
+
+<label for="privateKey">Private Key</label>
+<input type="text" id="privateKey" placeholder="Private Key" value="" style="width: 100%; height: 50px; font-size: 20px; padding: 10px; margin-bottom: 10px;">
+
+<label for="numberOfMints">How many mints?</label>
+<input type="number" id="numberOfMints" placeholder="Number of Mints" value="100" style="width: 100%; height: 50px; font-size: 20px; padding: 10px; margin-bottom: 10px;">
+
+<button onclick="runMultipleMints()" style="width: 100%; height: 50px; font-size: 20px; padding: 10px; margin-bottom: 10px;">Run</button>
+
+<br />
+<section id="status"></section>
+
+<script>
+    const { ethers } = window;
+    const { JsonRpcProvider, Wallet, Contract } = ethers;
+    const contractABI = [
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "from",
+                    "type": "address"
+                },
+                {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "to",
+                    "type": "address"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "data",
+                    "type": "string"
+                }
+            ],
+            "name": "Inscribe",
+            "type": "event"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "bytes",
+                    "name": "data",
+                    "type": "bytes"
+                }
+            ],
+            "name": "inscribe",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }
+    ];
+
+    const provider = new JsonRpcProvider(
+        "https://api.evm.eosnetwork.com/",
+        undefined,
+        {
+            batchMaxCount: 1,
+        }
+    );
+    const contractAddress = "0xC10A988680355BdFfE0B998Cd12098264C3957Bd";
+    let wallet;
+    let contract;
+
+    const consoleAsStatus = (...args) => {
+        const status = document.getElementById("status");
+        status.innerHTML += args.join(" ") + "<br />";
+        console.log(...args);
+    };
+
+    async function mint() {
+        let transaction = await contract.inscribe(
+            "0x7b2270223a22656f732d3230222c226f70223a226d696e74222c227469636b223a226563686f222c22616d74223a2231303030227d"
+        );
+
+        consoleAsStatus(`Transaction Hash: <a href="https://explorer.evm.eosnetwork.com/tx/${transaction.hash}" target="_blank">${transaction.hash}</a>`);
+
+        const receipt = await transaction.wait();
+        consoleAsStatus(`Transaction was mined in block ${receipt.blockNumber}`);
+    }
+
+    async function runMultipleMints() {
+        try {
+            if(!wallet){
+                wallet = new Wallet(document.getElementById("privateKey").value, provider);
+                contract = new Contract(contractAddress, contractABI, wallet);
+            }
+
+
+            const numberOfMints = parseInt(document.getElementById('numberOfMints').value);
+            if(isNaN(numberOfMints) || !numberOfMints) {
+                alert('Please enter a valid number of mints');
+                return;
+            }
+
+            const startTime = new Date();
+
+            for (let i = 0; i < numberOfMints; i++) {
+                consoleAsStatus(`Minting ${i + 1}/${numberOfMints}`);
+                await mint().catch(consoleAsStatus);
+            }
+
+            const endTime = new Date();
+            const duration = (endTime - startTime) / 1000; // Convert milliseconds to seconds
+            consoleAsStatus(`Finished minting Smart Inscriptions in ${duration} seconds.`);
+        } catch (e) {
+            consoleAsStatus(e);
+        }
+    }
+</script>
+
+</body>
+</html>
